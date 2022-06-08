@@ -153,7 +153,7 @@ class LoginHelper {
 				logger.info(`proof attr name: ${proof_attr.name} schema attr name: ${schema_attr.name} test`);
 				// Indy removes spaces and capital letters in proof response attribute names for some reason
 				if (!proof_attr.name) continue;
-                if (proof_attr.name && (proof_attr.name === schema_attr.name || proof_attr.name === schema_attr.name.toLowerCase().split(' ').join('')))
+				if (proof_attr.name && (proof_attr.name === schema_attr.name || proof_attr.name === schema_attr.name.toLowerCase().split(' ').join('')))
 					accepted_proof_attr = proof_attr;
 
 				// Make sure the requested attributes that had restrictions have a credential associated with them
@@ -399,8 +399,20 @@ class AccountSignupHelper {
 	}
 }
 
+class Utils {
+	static async createAgentInvitation (agent) {
+		const direct_route = true; // messages will be sent directly to the inviter
+		const manual_accept = false; // the inviter's agent will automatically accept any cunnetcion offer from this invitation
+		const max_acceptances = -1; // set no limit on how many times this invitaton may be accepted
+		const properties = null; // properties to set on the inviter's side of the connection
+
+		return agent.createInvitation(direct_route, manual_accept, max_acceptances, properties);
+	}
+}
+
 module.exports = {
 	LoginHelper,
 	NullProofHelper,
-	AccountSignupHelper
+	AccountSignupHelper,
+	Utils
 };

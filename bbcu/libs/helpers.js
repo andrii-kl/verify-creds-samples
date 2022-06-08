@@ -16,7 +16,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const { v4: uuidv4 } = require('uuid');
+const {v4: uuidv4} = require('uuid');
 const async = require('async');
 
 const Logger = require('./logger.js').Logger;
@@ -316,7 +316,7 @@ class AccountSignupHelper {
 
 		// Make sure the fields we need were provided
 		// Comment out the remainder because the info.attributes are now equal to the schema attributes
-                /*
+		/*
 		if (!attributes.first_name || !attributes.firstname) // 'First Name' is converted to 'firstname' in Hyperledger Indy
 			throw new Error('Two verified attestations of first name were not provided');
 
@@ -377,7 +377,7 @@ class AccountSignupHelper {
 			dob_timestamp: dob_timestamp,
 			address_line_1: attributes.address_line_1,
 			address_line_2: attributes.address_line_2 ? attributes.address_line_2 : '_',
-			ssn: attributes["Social Security Number"],
+			ssn: attributes['Social Security Number'],
 			state: attributes.state,
 			postal_code: attributes.zip_code,
 			institution_number: 'bbcu123',
@@ -442,7 +442,7 @@ class InboundNonceWatcher {
 					queryObj['remote.properties.meta.nonce'] = qr_code_nonce;
 					updated_request = await this.agent.getConnections(queryObj);
 					if (updated_request.hasOwnProperty('length') && updated_request.length > 0
-						&& ['connected'].indexOf(updated_request[0].state) >= 0) {
+						&& [ 'connected' ].indexOf(updated_request[0].state) >= 0) {
 						step_number = 4;
 					}
 				}
@@ -492,6 +492,17 @@ class InboundNonceWatcher {
 	}
 }
 
+class Utils {
+	static async createAgentInvitation (agent) {
+		const direct_route = true; // messages will be sent directly to the inviter
+		const manual_accept = false; // the inviter's agent will automatically accept any cunnetcion offer from this invitation
+		const max_acceptances = -1; // set no limit on how many times this invitaton may be accepted
+		const properties = null; // properties to set on the inviter's side of the connection
+
+		return agent.createInvitation(direct_route, manual_accept, max_acceptances, properties);
+	}
+}
+
 InboundNonceWatcher.REQUEST_TYPES = {
 	CONNECTION: 1,
 	CREDENTIAL: 2,
@@ -499,14 +510,15 @@ InboundNonceWatcher.REQUEST_TYPES = {
 };
 
 InboundNonceWatcher.REQUEST_TYPES_KEYS_AS_STRINGS = {
-	[InboundNonceWatcher.REQUEST_TYPES.CONNECTION]: "CONNECTION",
-	[InboundNonceWatcher.REQUEST_TYPES.CREDENTIAL]: "CREDENTIAL",
-	[InboundNonceWatcher.REQUEST_TYPES.VERIFICATION]: "VERIFICATION",
-}
+	[InboundNonceWatcher.REQUEST_TYPES.CONNECTION]: 'CONNECTION',
+	[InboundNonceWatcher.REQUEST_TYPES.CREDENTIAL]: 'CREDENTIAL',
+	[InboundNonceWatcher.REQUEST_TYPES.VERIFICATION]: 'VERIFICATION'
+};
 
 module.exports = {
 	LoginHelper,
 	NullProofHelper,
 	AccountSignupHelper,
 	InboundNonceWatcher,
+	Utils
 };

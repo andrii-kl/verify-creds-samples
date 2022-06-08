@@ -242,32 +242,47 @@ class Issuance {
 			this.status = Issuance.ISSUANCE_STEPS.ESTABLISHING_CONNECTION;
 			logger.info('Connection to user via invitation');
 			const connection_opts = icon ? {icon: icon} : null;
-			let connection;
 
-			try {
-				if (!user_doc.opts || !user_doc.opts.invitation_url) {
-					const err = new Error('User record does not have an associated invitation url');
-					err.code = CREDENTIAL_ERRORS.CREDENTIAL_USER_AGENT_NOT_FOUND;
+			let connection;
+			if (!user_doc.opts || !user_doc.opts.invitation_url) {
+				const err = new Error('User record does not have an associated invitation url');
+				err.code = CREDENTIAL_ERRORS.CREDENTIAL_USER_AGENT_NOT_FOUND;
+				throw err;
+			}
+
+			if (user_doc.opts.invitation_url.toLowerCase().indexOf('http') >= 0) {
+				try {
+
+					logger.info(`Accepting invitation from ${this.user}`);
+					this.connection_offer = await this.agent.acceptInvitation(user_doc.opts.invitation_url, connection_opts);
+					if (!this.connection_offer || (this.connection_offer.state !== 'outbound_offer' && this.connection_offer.state !== 'connected')) {
+						throw new Error('Connection in unexpected state after accepting invitation');
+					}
+					logger.info(`Sent connection offer ${this.connection_offer.id} to ${user_doc.opts.agent_name}`);
+					connection = await this.agent.waitForConnection(this.connection_offer.id, 30, 3000);
+
+				} catch (error) {
+					logger.error(`Failed to establish a connection with the user. error: ${error}`);
+					error.code = error.code ? error.code : CREDENTIAL_ERRORS.CREDENTIAL_CONNECTION_FAILED;
+					if (this.connection_offer && this.connection_offer.id) {
+						logger.info(`Cleaning up connection offer ${this.connection_offer.id}`);
+						await this.agent.deleteConnection(this.connection_offer.id);
+					}
+					throw error;
+				}
+			} else {
+				const search = {};
+				search['remote.name'] = user_doc.opts.invitation_url;
+				const connections = await this.agent.getConnections(search);
+				connection = connections[0];
+
+				if (!connection) {
+					const err = new Error(`User agent is not connected. Query: ${JSON.stringify(search)}`);
+					err.code = CREDENTIAL_ERRORS.CREDENTIAL_CONNECTION_FAILED;
 					throw err;
 				}
-
-				logger.info(`Accepting invitation from ${this.user}`);
-				this.connection_offer = await this.agent.acceptInvitation(user_doc.opts.invitation_url, connection_opts);
-				if (!this.connection_offer || (this.connection_offer.state !== 'outbound_offer' && this.connection_offer.state !== 'connected')) {
-					throw new Error('Connection in unexpected state after accepting invitation');
-				}
-				logger.info(`Sent connection offer ${this.connection_offer.id} to ${user_doc.opts.agent_name}`);
-				connection = await this.agent.waitForConnection(this.connection_offer.id, 30, 3000);
-
-			} catch (error) {
-				logger.error(`Failed to establish a connection with the user. error: ${error}`);
-				error.code = error.code ? error.code : CREDENTIAL_ERRORS.CREDENTIAL_CONNECTION_FAILED;
-				if (this.connection_offer && this.connection_offer.id) {
-					logger.info(`Cleaning up connection offer ${this.connection_offer.id}`);
-					await this.agent.deleteConnection(this.connection_offer.id);
-				}
-				throw error;
 			}
+
 			logger.info(`Established connection ${connection.id}.  Their DID: ${connection.remote.pairwise.did}`);
 
 			this.status = Issuance.ISSUANCE_STEPS.ISSUING_CREDENTIAL;
